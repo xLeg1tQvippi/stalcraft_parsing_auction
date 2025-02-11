@@ -7,19 +7,37 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver import Keys
 from stalcraft_data_prices import dataPrice
+import subprocess
+import instr
+import pygame
 import time, pyperclip
+import importlib
 
 
 class Main:
     def __init__(self):
+        self.show_file_product_price_list = "price_list.py"
         self.product_name = "Пси-маячок"
         self.repeatingStatus = True
         self.repeatingTime = 15
-        self.max_product_price = 22000
+        self.max_product_price = 20000
         self.launch_website()
 
-    def save_data(self, product_name: str, product_data_price: list):
-        dataPrice[product_name] = sorted(product_data_price)
+    def show_price_list(self):
+        print("running notification... - ", end="")
+        pygame.mixer.init()
+        pygame.mixer.music.load("notification.mp3")
+        pygame.mixer.music.play()
+        print(" success")
+        subprocess.run(
+            ["cmd", "/c", "start", "python", f"{self.show_file_product_price_list}"]
+        )
+
+    def save_data(self, product_name: str, product_data_price: dict):
+        print(f"function: {self.save_data.__name__}")
+        print(product_data_price, "!")
+        dataPrice[product_name] = product_data_price
+        time.sleep(2)
         with open("stalcraft_data_prices.py", "w", encoding="utf-8") as file:
             file.write(f"dataPrice = {repr(dataPrice)}")
         print("Успешно сохранено!")
@@ -54,18 +72,21 @@ class Main:
             DetailedLoot: WebElement = itemData.find_element(
                 By.CLASS_NAME, "detailsLoots"
             )
-            print("detailed loot found")
             time.sleep(4)
             product_description = DetailedLoot.find_elements(By.CLASS_NAME, "itemLoot")
             print("searching products!")
             text_to_buy = "Цена выкупа: "
             text_to_buy_len = len(text_to_buy)
-            product_price_list = []
+            product_price_list = {}
             for product in product_description:
                 price_box = product.find_element(By.CLASS_NAME, "priceItemBox")
+                product_quantity = product.find_element(
+                    By.CLASS_NAME, "itemLootCount"
+                ).text
                 item_price = price_box.find_element(
                     By.CLASS_NAME, "itemLootByuOut"
                 ).text
+                shorted_product_quantity = product_quantity[-1:]
                 product_price_full = str(item_price)
                 try:
                     product_price = float(
@@ -73,17 +94,25 @@ class Main:
                         .replace(" ", "")
                         .replace(",", ".")
                     )
-                    print("trying to int!:", int(product_price))
+                    print("trying to int!:", int(product_price), end="\r")
                     product_price = int(product_price)
                     if (
                         int(product_price) < self.max_product_price
                         and int(product_price) > 0
                     ):
-                        product_price_list.append(float(product_price))
-                except:
-                    print("int not success!")
+                        # TODO Добавить добавление в словарь.
+                        if str(product_price) in product_price_list.keys():
+                            product_price_list[str(product_price)] += int(
+                                shorted_product_quantity
+                            )
+                        else:
+                            product_price_list[str(product_price)] = int(
+                                shorted_product_quantity
+                            )
+                except Exception as e:
+                    print(f"int not success!: {e}")
             print("full list!")
-            print(sorted(product_price_list))
+            print(product_price_list)
         except Exception as e:
             print(f"Ошибка в функции: {self.get_prices.__name__}:", e)
         else:
@@ -95,8 +124,8 @@ class Main:
                 pageStatusUpdate = self.update_product_page()
                 if pageStatusUpdate == True:
                     return True
-                else:
-                    return False
+            else:
+                return False
 
     def find_and_click_product(self):
         try:
@@ -148,12 +177,25 @@ class Main:
                         cycles += 1
                         get_prices_status = self.get_prices()
                         if get_prices_status == True:
+                            print(f"showing price list!")
+                            self.show_price_list()
                             time.sleep(self.repeatingTime)
                             print("cycles:", cycles)
+                            print("reloading instr.py ...")
+                            importlib.reload(instr)
+                            print("reloaded!")
+                            print("repeatingStatus:", instr.repeatingStatusArg)
+                            if instr.repeatingStatusArg == True:
+                                print("stopping cycles.")
+                                break
                         if get_prices_status == False:
                             break
                 else:
-                    self.get_prices()
+                    get_prices_status = self.get_prices()
+                    if get_prices_status == False:
+                        print("showing price list!")
+                        self.show_price_list()
+                        time.sleep(10)
 
     def search_line_arguments(self):
         try:
