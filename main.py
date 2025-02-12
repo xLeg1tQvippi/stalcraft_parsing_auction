@@ -40,12 +40,21 @@ class Main:
         self.options.add_argument("--headless")
         self.options.add_argument("--start-maximized")
 
+    def clearStalcraftDataPrices(self):
+        print("cleaning stalcraftData...")
+        with open("stalcraft_data_prices.py", "w") as file:
+            file.write("dataPrice = {}")
+        print("success!")
+
     def show_price_list(self):
         importlib.reload(stalcraft_data_prices)
         for key, value in stalcraft_data_prices.dataPrice.items():
-            if stalcraft_data_prices.dataPrice[key] == {}:
+            if not value:
                 print("nothing found...")
+                self.clearStalcraftDataPrices()
                 return
+            else:
+                break
         print("running notification... - ", end="")
         pygame.mixer.init()
         pygame.mixer.music.load("notification.mp3")
@@ -56,9 +65,10 @@ class Main:
         startupinfo.wShowWindow = 6  # SW_MINIMIZE (сворачивает окно)
 
         # Открываем cmd в отдельном окне и сворачиваем его
-        subprocess.Popen(
-            [sys.executable, "price_list.py"], startupinfo=startupinfo, shell=True
-        )
+        process = subprocess.Popen("start cmd.exe /K python price_list.py", shell=True)
+        exitStatus = process.wait()
+        time.sleep(2)
+        self.clearStalcraftDataPrices()
 
     def save_data(self, product_name: str, product_data_price: dict):
         print(f"function: {self.save_data.__name__}")
@@ -120,14 +130,8 @@ class Main:
                         .replace(" ", "")
                         .replace(",", ".")
                     )
-                    print("product price:", int(product_price))
+                    print("product price:", int(product_price), end="\r")
                     product_price = int(product_price)
-                    if int(shorted_product_quantity) > 1:
-                        print("quantity more than 1!")
-                        print(
-                            f"{product_price:,}р. - {shorted_product_quantity}шт.\n{int(product_price)//int(shorted_product_quantity)} - average price!"
-                        )
-                        # TODO {"17000": 3, "210000": {6, 19000, 2}}
                     if (
                         int(product_price) < self.max_product_price
                         and int(product_price) > 0
@@ -225,15 +229,28 @@ class Main:
                         if get_prices_status == True:
                             print(f"showing price list!")
                             self.show_price_list()
-                            time.sleep(self.repeatingTime)
+                            if self.repeatingStatus == True:
+                                clear_line = " " * 50
+                                for i in range(self.repeatingTime, 0, -1):
+                                    print(
+                                        f"\r{clear_line}", end="\r"
+                                    )  # Полностью очищаем строку
+                                    print(
+                                        f"До повторного поиска осталось: {i} секунд...",
+                                        end="\r",
+                                    )  # Вывод таймера
+                                    time.sleep(1)
+                                else:
+                                    print()
                             print("cycles:", cycles)
-                            print("reloading instr.py ...")
-                            importlib.reload(instr)
-                            print("reloaded!")
-                            print("repeatingStatus:", instr.repeatingStatusArg)
-                            if instr.repeatingStatusArg == True:
-                                print("stopping cycles.")
-                                break
+                            #! Доделать функцию остановки повторения.
+                            # print("reloading instr.py ...")
+                            # importlib.reload(instr)
+                            # print("reloaded!")
+                            # print("repeatingStatus:", instr.repeatingStatusArg)
+                            # if instr.repeatingStatusArg == True:
+                            #     print("stopping cycles.")
+                            #     break
                         if get_prices_status == False:
                             break
                 else:
@@ -292,7 +309,7 @@ if __name__ == "__main__":
             )
         if repeatingStatus == 2:
             repeatingStatus = False
-            repeatingTime = 10
+            repeatingTime = 1
 
         start = Main(
             product_name=product_name,
