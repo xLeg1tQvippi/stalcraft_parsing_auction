@@ -14,7 +14,7 @@ import stalcraft_data_prices
 import subprocess
 import instr
 import pygame
-import time, pyperclip
+import time
 import importlib
 import sys
 
@@ -47,6 +47,7 @@ class Main:
         print("success!")
 
     def show_price_list(self):
+        """ """
         importlib.reload(stalcraft_data_prices)
         for key, value in stalcraft_data_prices.dataPrice.items():
             if not value:
@@ -60,15 +61,16 @@ class Main:
         pygame.mixer.music.load("notification.mp3")
         pygame.mixer.music.play()
         print(" success")
-        startupinfo = subprocess.STARTUPINFO()
-        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-        startupinfo.wShowWindow = 6  # SW_MINIMIZE (сворачивает окно)
-
-        # Открываем cmd в отдельном окне и сворачиваем его
-        process = subprocess.Popen("start cmd.exe /K python price_list.py", shell=True)
-        exitStatus = process.wait()
+        print("trying to open cmd...")
+        process = subprocess.Popen(
+            "cmd.exe /K start /min python price_list.py", shell=True
+        )
+        print("success!")
+        # exitStatus = process.wait()
         time.sleep(2)
+        print(f"starting {self.clearStalcraftDataPrices.__name__} function!")
         self.clearStalcraftDataPrices()
+        print("clearing complete.")
 
     def save_data(self, product_name: str, product_data_price: dict):
         print(f"function: {self.save_data.__name__}")
@@ -163,8 +165,10 @@ class Main:
                                 product_price_list[str(product_price)] = stats
                 except Exception as e:
                     print(f"int not success!: {e}")
+            print()
             print("full list!")
             print(product_price_list)
+            print("product searching status: Done!")
         except Exception as e:
             print(f"Ошибка в функции: {self.get_prices.__name__}:", e)
         else:
@@ -229,19 +233,18 @@ class Main:
                         if get_prices_status == True:
                             print(f"showing price list!")
                             self.show_price_list()
-                            if self.repeatingStatus == True:
-                                clear_line = " " * 50
-                                for i in range(self.repeatingTime, 0, -1):
-                                    print(
-                                        f"\r{clear_line}", end="\r"
-                                    )  # Полностью очищаем строку
-                                    print(
-                                        f"До повторного поиска осталось: {i} секунд...",
-                                        end="\r",
-                                    )  # Вывод таймера
-                                    time.sleep(1)
-                                else:
-                                    print()
+                            clear_line = " " * 50
+                            for i in range(self.repeatingTime, 0, -1):
+                                print(
+                                    f"\r{clear_line}", end="\r"
+                                )  # Полностью очищаем строку
+                                print(
+                                    f"До повторного поиска осталось: {i} секунд...",
+                                    end="\r",
+                                )  # Вывод таймера
+                                time.sleep(1)
+                            else:
+                                print()
                             print("cycles:", cycles)
                             #! Доделать функцию остановки повторения.
                             # print("reloading instr.py ...")
@@ -251,8 +254,8 @@ class Main:
                             # if instr.repeatingStatusArg == True:
                             #     print("stopping cycles.")
                             #     break
-                        if get_prices_status == False:
-                            break
+                            # if get_prices_status == False:
+                            #     break
                 else:
                     get_prices_status = self.get_prices()
                     if get_prices_status == False:
