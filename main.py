@@ -26,12 +26,14 @@ class Main:
         product_price: int,
         repeatingStatus: bool,
         repeatingTime: int,
+        removingOneProduct: bool,
     ):
         self.show_file_product_price_list = "price_list.py"
-        self.product_name = product_name
-        self.repeatingStatus = repeatingStatus
-        self.repeatingTime = repeatingTime
-        self.max_product_price = product_price
+        self.product_name: str = product_name
+        self.repeatingStatus: bool = repeatingStatus
+        self.repeatingTime: int = repeatingTime
+        self.max_product_price: int = product_price
+        self.removingOneProduct: bool = removingOneProduct
         self.start_options()
         self.launch_website()
 
@@ -45,6 +47,12 @@ class Main:
         with open("stalcraft_data_prices.py", "w") as file:
             file.write("dataPrice = {}")
         print("success!")
+
+    def run_error_notification(self):
+        pygame.mixer.init()
+        pygame.mixer.music.load("error-notification.mp3")
+        pygame.mixer.music.set_volume(0.7)
+        pygame.mixer.music.play()
 
     def show_price_list(self):
         """ """
@@ -95,6 +103,7 @@ class Main:
             button.click()
         except Exception as e:
             print(f"Ошибка в функции: {self.get_prices.__name__}:", e)
+            self.run_error_notification()
         else:
             print("page succesfully updated.")
             print("returning status...")
@@ -134,35 +143,57 @@ class Main:
                     )
                     print("product price:", int(product_price), end="\r")
                     product_price = int(product_price)
-                    if (
-                        int(product_price) < self.max_product_price
-                        and int(product_price) > 0
-                        and int(shorted_product_quantity) == 1
-                    ):
-                        if str(product_price) in product_price_list.keys():
-                            product_price_list[str(product_price)] += int(
-                                shorted_product_quantity
-                            )
-                        else:
-                            product_price_list[str(product_price)] = int(
-                                shorted_product_quantity
-                            )
-                    if int(shorted_product_quantity) > 1:
-                        average_price = product_price // int(shorted_product_quantity)
+                    if self.removingOneProduct == False:
                         if (
-                            average_price < self.max_product_price
+                            int(product_price) < self.max_product_price
                             and int(product_price) > 0
+                            and int(shorted_product_quantity) == 1
                         ):
-                            stats = {
-                                "amount": int(shorted_product_quantity),
-                                "average": average_price,
-                                "quantity": 1,
-                            }
                             if str(product_price) in product_price_list.keys():
-                                stats["quantity"] += 1
-                                product_price_list[str(product_price)] = stats
+                                product_price_list[str(product_price)] += int(
+                                    shorted_product_quantity
+                                )
                             else:
-                                product_price_list[str(product_price)] = stats
+                                product_price_list[str(product_price)] = int(
+                                    shorted_product_quantity
+                                )
+                        if int(shorted_product_quantity) > 1:
+                            average_price = product_price // int(
+                                shorted_product_quantity
+                            )
+                            if (
+                                average_price < self.max_product_price
+                                and int(product_price) > 0
+                            ):
+                                stats = {
+                                    "amount": int(shorted_product_quantity),
+                                    "average": average_price,
+                                    "quantity": 1,
+                                }
+                                if str(product_price) in product_price_list.keys():
+                                    stats["quantity"] += 1
+                                    product_price_list[str(product_price)] = stats
+                                else:
+                                    product_price_list[str(product_price)] = stats
+                    if self.removingOneProduct == True:
+                        if int(shorted_product_quantity) > 1:
+                            average_price = product_price // int(
+                                shorted_product_quantity
+                            )
+                            if (
+                                average_price < self.max_product_price
+                                and int(product_price) > 0
+                            ):
+                                stats = {
+                                    "amount": int(shorted_product_quantity),
+                                    "average": average_price,
+                                    "quantity": 1,
+                                }
+                                if str(product_price) in product_price_list.keys():
+                                    stats["quantity"] += 1
+                                    product_price_list[str(product_price)] = stats
+                                else:
+                                    product_price_list[str(product_price)] = stats
                 except Exception as e:
                     print(f"int not success!: {e}")
             print()
@@ -171,6 +202,7 @@ class Main:
             print("product searching status: Done!")
         except Exception as e:
             print(f"Ошибка в функции: {self.get_prices.__name__}:", e)
+            self.run_error_notification()
         else:
             print("saving data")
             self.save_data(
@@ -191,6 +223,7 @@ class Main:
             item_list = items.find_elements(By.CLASS_NAME, "contentItem")
         except Exception as e:
             print(f"Ошибка в функции {self.find_and_click_product.__name__}:", e)
+            self.run_error_notification()
         else:
             print("element found!")
             print("searching items!")
@@ -218,6 +251,7 @@ class Main:
                 inputSearch.send_keys(self.product_name)
             except Exception as e:
                 print(e)
+                self.run_error_notification()
             else:
                 # TODO main branch!
                 print("keys was succesfully sent!")
@@ -275,6 +309,7 @@ class Main:
             )
         except Exception as e:
             print("Ошибка в функции search_arguments:", e)
+            self.run_error_notification()
         else:
             self.search_InputItem()
 
@@ -301,6 +336,7 @@ def input_int(text: str):
 
 if __name__ == "__main__":
     while True:
+        removeOneProductStatus = False
         completer = WordCompleter(items)
         product_name = prompt("Введите название товара: ", completer=completer)
         max_price = input_int("Введите максимальную цену товара:\n>>>")
@@ -313,10 +349,15 @@ if __name__ == "__main__":
         if repeatingStatus == 2:
             repeatingStatus = False
             repeatingTime = 1
-
+        removeOneProductItem = input_int(
+            "Убрать вывод одиночных товаров?\n1 - Да\n2 - Нет\n>>>"
+        )
+        if removeOneProductItem == 1:
+            removeOneProductStatus = True
         start = Main(
             product_name=product_name,
             product_price=max_price,
             repeatingStatus=repeatingStatus,
             repeatingTime=repeatingTime,
+            removingOneProduct=removeOneProductStatus,
         )
