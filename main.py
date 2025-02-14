@@ -62,7 +62,6 @@ class Main:
         with open("stalcraft_data_prices.py", "w") as file:
             file.write("dataPrice = {}")
         print("success!")
-        traceback.print_stack()
         importlib.reload(stalcraft_data_prices)
 
     def run_error_notification(self):
@@ -213,6 +212,7 @@ class Main:
             return int(product_price)
         except Exception as e:
             print(f"Ошибка при извлечении цены: {e}")
+            self.run_error_notification()
             return None
 
     def create_stats(self, quantity, average_price=None, name=None, amount=None):
@@ -354,7 +354,6 @@ class Main:
 
         except Exception as e:
             print(f"Ошибка в функции: {self.get_prices.__name__}:", e)
-            traceback.print_exc()
             self.run_error_notification()
             input("...")
         else:
@@ -405,6 +404,7 @@ class Main:
             return self.search_line.find_element(By.ID, "searchItem")
         except Exception as e:
             print(f"Ошибка в get_search_input: {e}")
+            self.run_error_notification()
             return None
 
     def send_search_keys(self, input_element):
