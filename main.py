@@ -62,6 +62,7 @@ class Main:
         with open("stalcraft_data_prices.py", "w") as file:
             file.write("dataPrice = {}")
         print("success!")
+        traceback.print_stack()
         importlib.reload(stalcraft_data_prices)
 
     def run_error_notification(self):
@@ -85,13 +86,12 @@ class Main:
         pygame.mixer.music.play()
         print(" success")
         print("trying to open cmd...")
-        subprocess.Popen("start cmd.exe /K python price_list.py", shell=True)
+        subprocess.Popen("cmd.exe /K start /min python price_list.py", shell=True)
         print("success!")
 
     def save_data(self, product_name: str, product_data_price: dict):
         print(f"function: {self.save_data.__name__}")
         stalcraft_data_prices.dataPrice[product_name] = product_data_price
-        print("dataPrice!", stalcraft_data_prices.dataPrice)
         with open("stalcraft_data_prices.py", "w", encoding="utf-8") as file:
             file.write(f"dataPrice = {repr(stalcraft_data_prices.dataPrice)}")
         print("Успешно сохранено!")
@@ -252,14 +252,12 @@ class Main:
                     )
 
         if int(shorted_product_quantity) > 1:
-            print("quantity > 1!")
             average_price = product_price // int(shorted_product_quantity)
             condition = (
                 average_price <= self.max_product_price
                 and int(product_price) > 0
                 and int(shorted_product_quantity) > 1
             )
-            print("condition", condition)
             if condition:
                 if str(product_price) in product_price_list.keys():
                     product_price_list[str(product_price)]["amount"] += 1
@@ -305,7 +303,6 @@ class Main:
                 if product_price is not None:
                     if self.artefactStatus:
                         tier = product_full_name[-2:]
-                        print("product full name! shorted:", tier)
                         try:
                             tier = int(tier)
                             artTier = str(tier).isdigit()
@@ -314,12 +311,10 @@ class Main:
                         else:
                             if artTier:
                                 if self.artefactRange is not None:
-                                    print("self.artefactRange", self.artefactRange)
                                     if (
                                         int(tier) >= self.artefactRange[0]
                                         and int(tier) <= self.artefactRange[1]
                                     ):
-                                        print("range True!")
                                         self.process_product(
                                             product_price,
                                             shorted_product_quantity,
@@ -329,9 +324,6 @@ class Main:
                                 else:
                                     if self.artefactTier != "":
                                         if int(self.artefactTier) == int(tier):
-                                            print(
-                                                f"input Tier: {self.artefactTier} == found {artTier}"
-                                            )
                                             self.process_product(
                                                 product_price,
                                                 shorted_product_quantity,
@@ -347,7 +339,6 @@ class Main:
                                                 product_price_list,
                                             )
                             else:
-                                print("tier not found!...")
                                 continue
                     else:
                         self.process_product(
@@ -513,6 +504,7 @@ def input_int(text: str):
             continue
         else:
             return text
+
 
 def get_artefact_range(text: list):
     try:
