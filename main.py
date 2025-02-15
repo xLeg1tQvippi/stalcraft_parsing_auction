@@ -22,6 +22,7 @@ import pygame
 import time
 import importlib
 import sys
+import psutil
 
 
 class Main:
@@ -70,6 +71,19 @@ class Main:
         pygame.mixer.music.set_volume(0.7)
         pygame.mixer.music.play()
 
+    def kill_old_process(self):
+        """Находит и завершает старый процесс `price_list.py`."""
+        for proc in psutil.process_iter(["pid", "name", "cmdline"]):
+            try:
+                cmdline = proc.info["cmdline"]
+                if cmdline and any("price_list.py" in arg for arg in cmdline):
+                    print(f"Закрываем старый процесс: {proc.info['pid']}")
+                    proc.terminate()  # Мягкое завершение
+                    proc.wait(2)  # Ждем завершения процесса
+                    break
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                pass
+
     def show_price_list(self):
         """ """
         importlib.reload(stalcraft_data_prices)
@@ -84,7 +98,10 @@ class Main:
         pygame.mixer.music.load("notification.mp3")
         pygame.mixer.music.play()
         print(" success")
+        print("trying to kill previous if exists..")
+        self.kill_old_process()
         print("trying to open cmd...")
+        # Запускаем новую командную строку с `price_list.py`
         subprocess.Popen("cmd.exe /K start /min python price_list.py", shell=True)
         print("success!")
 
