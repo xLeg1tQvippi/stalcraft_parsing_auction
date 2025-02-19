@@ -54,8 +54,29 @@ class Main:
 
     def start_options(self):
         self.options = webdriver.ChromeOptions()
-        self.options.add_argument("--headless")
-        self.options.add_argument("--start-maximized")
+        self.options.add_argument("--headless=new")  # Новый headless-режим
+        self.options.add_argument("--disable-gpu")
+        self.options.add_argument("--disable-software-rasterizer")
+        self.options.add_argument("--disable-dev-shm-usage")
+        self.options.add_argument("--no-sandbox")
+        self.options.add_argument("--disable-extensions")
+        self.options.add_argument(
+            "--disable-blink-features=AutomationControlled"
+        )  # Скрывает использование Selenium
+        self.options.add_argument("--disable-webgl")  # Полностью отключает WebGL
+        self.options.add_argument(
+            "--disable-features=VizDisplayCompositor"
+        )  # Отключает ненужные графические компоненты
+        self.options.add_argument(
+            "--disable-gpu-compositing"
+        )  # Полностью отключает GPU-композитинг
+        self.options.add_argument(
+            "--disable-angle"
+        )  # Отключает ANGLE (Chrome рендеринг OpenGL)
+        self.options.add_argument("--use-gl=disabled")  # Полностью отключает OpenGL
+        self.options.add_argument(
+            "--disable-features=UseSkiaRenderer"
+        )  # Отключает рендеринг через Skia
 
     def clearStalcraftDataPrices(self):
         time.sleep(2)
@@ -71,18 +92,27 @@ class Main:
         pygame.mixer.music.set_volume(0.7)
         pygame.mixer.music.play()
 
-    def kill_old_process(self):
-        """Находит и завершает старый процесс `price_list.py`."""
+    def close_old_process(self):
+        """Закрывает старый процесс price_list.py, если он уже запущен."""
         for proc in psutil.process_iter(["pid", "name", "cmdline"]):
             try:
                 cmdline = proc.info["cmdline"]
                 if cmdline and any("price_list.py" in arg for arg in cmdline):
                     print(f"Закрываем старый процесс: {proc.info['pid']}")
-                    proc.terminate()  # Мягкое завершение
-                    proc.wait(2)  # Ждем завершения процесса
-                    break
+                    proc.terminate()  # Более мягкое завершение
+                    proc.wait(2)  # Ждем 2 секунды, чтобы процесс точно закрылся
+                    break  # Останавливаем поиск после первого найденного
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                pass
+                pass  # Игнорируем ошибки, если процесс уже закрыт
+
+    def open_new_process(self):
+        """Открывает price_list.py в новом окне, совместимо с обычной консолью."""
+        subprocess.Popen("cmd.exe /C start /min python price_list.py", shell=True)
+
+    def run_notification(self):
+        pygame.mixer.init()
+        pygame.mixer.music.load("notification.mp3")
+        pygame.mixer.music.play()
 
     def show_price_list(self):
         """ """
@@ -93,16 +123,11 @@ class Main:
                 return
             else:
                 break
-        print("running notification... - ", end="")
-        pygame.mixer.init()
-        pygame.mixer.music.load("notification.mp3")
-        pygame.mixer.music.play()
-        print(" success")
         print("trying to kill previous if exists..")
-        self.kill_old_process()
+        self.close_old_process()
         print("trying to open cmd...")
-        # Запускаем новую командную строку с `price_list.py`
-        subprocess.Popen("cmd.exe /K start /min python price_list.py", shell=True)
+        self.run_notification()
+        self.open_new_process()
         print("success!")
 
     def save_data(self, product_name: str, product_data_price: dict):
@@ -121,10 +146,15 @@ class Main:
             HeadBoxLeft = HeadBoxContent.find_element(
                 By.CLASS_NAME, "texHeadBoxContentLeft"
             )
-            button = HeadBoxLeft.find_element(
-                By.XPATH, '//button[contains(text(), "Обновить")]'
+            button = (
+                WebDriverWait(HeadBoxLeft, 20)
+                .until(
+                    EC.element_to_be_clickable(
+                        (By.XPATH, '//button[contains(text(), "Обновить")]')
+                    )
+                )
+                .click()
             )
-            button.click()
         except Exception as e:
             print(f"Ошибка в функции: {self.upda.__name__}:", e)
             self.run_error_notification()
@@ -291,8 +321,12 @@ class Main:
 
     def get_prices(self):
         try:
+            time.sleep(1.5)
+            print("starting main prices")
             self.main_prices = self.get_main_prices()
+            print("starting to choose rarity..")
             self.check_and_choose_rarity()
+            print("trying to get item data...")
             itemData = self.get_item_data()
             print("item data found")
 
